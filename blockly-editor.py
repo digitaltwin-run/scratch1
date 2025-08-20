@@ -10,11 +10,22 @@ import argparse
 import os
 import webbrowser
 import threading
-import time
-from flask import Flask, render_template, abort, send_from_directory
+import logging
 from pathlib import Path
 
+from flask import Flask, render_template, send_from_directory, abort
+from flask_cors import CORS
+from waitress import serve
+
+# --- Basic Logging Setup ---
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s",
+    handlers=[logging.StreamHandler()],
+)
+
 app = Flask(__name__, template_folder=".")
+CORS(app)  # Enable CORS for all routes
 
 # --- Routes ---
 
@@ -48,22 +59,22 @@ def favicon():
 
 def main():
     parser = argparse.ArgumentParser(description="Generic Blockly Editor")
-    parser.add_argument("--port", type=int, default=8083, help="Port for web server")
-    parser.add_argument("--no-browser", action="store_true", help="Don't open browser")
+    parser.add_argument("--port", type=int, default=8083, help="Port for the web server")
     parser.add_argument(
-        "--no-debug", action="store_true", help="Disable Flask debug mode"
+        "--no-browser", action="store_true", help="Do not open a web browser"
     )
     args = parser.parse_args()
 
     url = f"http://127.0.0.1:{args.port}"
 
     if not args.no_browser:
-        # Use threading to avoid blocking the server start
+        # Open browser in a separate thread to avoid blocking server start
         threading.Timer(1.25, lambda: webbrowser.open_new(url)).start()
 
-    print(f"Starting Generic Blockly Editor at {url}")
-    print("Press Ctrl+C to exit")
-    app.run(host="0.0.0.0", port=args.port, debug=not args.no_debug)
+    logging.info(f"Starting Generic Blockly Editor at {url}")
+    logging.info("Server is running on http://0.0.0.0:%s", args.port)
+    logging.info("Press Ctrl+C to exit.")
+    serve(app, host="0.0.0.0", port=args.port)
 
 
 if __name__ == "__main__":

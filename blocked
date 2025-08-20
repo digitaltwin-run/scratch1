@@ -9,14 +9,10 @@ if [ -d "venv" ]; then
     source venv/bin/activate
 fi
 
-# Sprawdź który plik Python istnieje i użyj go
+# Execute the primary editor script directly
 if [ -f "simple-yaml-editor.py" ]; then
     python3 simple-yaml-editor.py "$@"
-elif [ -f "blocked.py" ]; then
-    python3 blocked.py "$@"
-elif [ -f "blockly-yaml-editor.py" ]; then
-    python3 blockly-yaml-editor.py "$@"
 else
-    echo "Error: No Python script found"
+    echo "Error: Main editor script 'simple-yaml-editor.py' not found."
     exit 1
 fi

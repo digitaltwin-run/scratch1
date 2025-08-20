@@ -46,8 +46,8 @@ venv: ## Create Python virtualenv (./venv)
 	@test -d "$(VENV)" || python3 -m venv "$(VENV)"
 	@$(PIP) -q install --upgrade pip
 
-install: venv ## Install runtime dependencies (Flask, Flask-CORS, PyYAML)
-	@$(PIP) install -U flask flask-cors pyyaml
+install: venv ## Install runtime dependencies (Flask, Flask-CORS, PyYAML, Waitress)
+	@$(PIP) install -U flask flask-cors pyyaml waitress
 
 dev-deps: venv ## Install dev tools (black, ruff, pytest)
 	@$(PIP) install -U black ruff pytest

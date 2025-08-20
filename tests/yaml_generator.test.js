@@ -2,28 +2,6 @@
  * @jest-environment jsdom
  */
 
-const fs = require('fs');
-const path = require('path');
-
-// Helper to load scripts into the JSDOM environment
-function loadScript(filePath) {
-    const fullPath = path.resolve(__dirname, filePath);
-    const scriptContent = fs.readFileSync(fullPath, 'utf8');
-    const scriptEl = document.createElement('script');
-    scriptEl.textContent = scriptContent;
-    document.body.appendChild(scriptEl);
-}
-
-// Load Blockly and custom scripts before all tests
-beforeAll(() => {
-    // Blockly depends on navigator, so we mock it
-    global.navigator = {}; 
-    loadScript('../vendor/blockly.min.js');
-    loadScript('../vendor/blocks_compressed.js');
-    loadScript('../static/js/generic_blocks.js');
-    loadScript('../static/js/generic_generators.js');
-});
-
 describe('YAML Generator', () => {
     let workspace;
 
