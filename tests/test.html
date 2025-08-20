@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Blockly Test Environment</title>
+</head>
+<body>
+  <div id="blocklyDiv" style="height: 480px; width: 600px;"></div>
+
+  <!-- Load Blockly and custom scripts -->
+  <script src="../vendor/blocks_compressed.js"></script>
+  <script src="../static/js/generic_blocks.js"></script>
+  <script src="../static/js/generic_generators.js"></script>
+
+  <script>
+    // Initialize a workspace and attach it to the window object for tests
+    document.addEventListener('DOMContentLoaded', function() {
+      window.workspace = Blockly.inject('blocklyDiv', {});
+    });
+  </script>
+</body>
+</html>

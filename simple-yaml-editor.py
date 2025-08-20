@@ -5,9 +5,6 @@ Edytor plików YAML (docker-compose, etc.) oraz Dockerfile z interfejsem Blockly
 """
 
 import os
-import sys
-import json
-import yaml
 import webbrowser
 import threading
 import time
@@ -19,6 +16,8 @@ from flask_cors import CORS
 import argparse
 import signal
 import atexit
+import logging
+from waitress import serve
 
 app = Flask(__name__)
 CORS(app)
@@ -32,7 +31,7 @@ stop_auto_save = threading.Event()
 backup_dir = Path(".blocked")
 
 # HTML template - Minimal Offline Editor
-HTML_TEMPLATE = """
+HTML_TEMPLATE = r"""
 <!DOCTYPE html>
 <html>
 <head>
@@ -1125,6 +1124,8 @@ def main():
 
     args = parser.parse_args()
 
+    logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
     current_file = os.path.abspath(args.file)
 
     # Tworzenie backupu
@@ -1139,23 +1140,18 @@ def main():
     signal.signal(signal.SIGTERM, signal_handler)
     atexit.register(cleanup)
 
+    url = f"http://127.0.0.1:{args.port}"
+
     # Otwieranie przeglądarki
     if not args.no_browser:
+        threading.Timer(1.25, lambda: webbrowser.open_new(url)).start()
 
-        def open_browser():
-            time.sleep(1.5)
-            webbrowser.open(f"http://localhost:{args.port}")
+    logging.info(f"Starting Blockly YAML Editor for {current_file} at {url}")
+    logging.info("Server is running on http://0.0.0.0:%s", args.port)
+    logging.info("Press Ctrl+C to exit.")
 
-        browser_thread = threading.Thread(target=open_browser)
-        browser_thread.daemon = True
-        browser_thread.start()
-
-    print(f"Starting Blockly YAML Editor on http://localhost:{args.port}")
-    print(f"Editing: {current_file}")
-    print("Press Ctrl+C to save and exit")
-
-    # Start Flask
-    app.run(host="0.0.0.0", port=args.port, debug=False)
+    # Start Waitress server
+    serve(app, host="0.0.0.0", port=args.port)
 
 
 if __name__ == "__main__":
