@@ -7,6 +7,10 @@ Blockly.Msg["%_XML"] = '#d9a341';
 
 // --- Generic Structure Blocks (for YAML, JSON, etc.) ---
 
+/**
+ * Block for creating a dictionary (key-value mapping).
+ * Uses a mutator to allow adding/removing pairs dynamically.
+ */
 Blockly.Blocks['dict_create_with'] = {
   init: function() {
     this.setHelpUrl('');
@@ -19,15 +23,28 @@ Blockly.Blocks['dict_create_with'] = {
     this.itemCount_ = 1;
     this.setTooltip('Creates a dictionary with key-value pairs.');
   },
+  /**
+   * Saves the number of pairs in the dictionary to a mutation XML element.
+   * @return {Element} The mutation XML element.
+   */
   mutationToDom: function() {
     var container = document.createElement('mutation');
     container.setAttribute('items', this.itemCount_);
     return container;
   },
+  /**
+   * Loads the number of pairs in the dictionary from a mutation XML element.
+   * @param {!Element} xmlElement The mutation XML element.
+   */
   domToMutation: function(xmlElement) {
     this.itemCount_ = parseInt(xmlElement.getAttribute('items'), 10);
     this.updateShape_();
   },
+  /**
+   * Decomposes the dictionary into a list of pairs.
+   * @param {!Blockly.Workspace} workspace The workspace to decompose in.
+   * @return {!Blockly.Block} The root block of the decomposed list.
+   */
   decompose: function(workspace) {
     var containerBlock = workspace.newBlock('dict_create_with_item');
     containerBlock.initSvg();
@@ -40,6 +57,10 @@ Blockly.Blocks['dict_create_with'] = {
     }
     return containerBlock;
   },
+  /**
+   * Composes the dictionary from a list of pairs.
+   * @param {!Blockly.Block} containerBlock The root block of the list.
+   */
   compose: function(containerBlock) {
     var itemBlock = containerBlock.nextConnection.targetBlock();
     // Count number of inputs.
@@ -63,6 +84,9 @@ Blockly.Blocks['dict_create_with'] = {
       Blockly.Mutator.reconnect(connections[i], this, 'PAIR' + i);
     }
   },
+  /**
+   * Updates the shape of the dictionary block to match the number of pairs.
+   */
   updateShape_: function() {
     // Add or remove value inputs.
     for (var i = 0; i < this.itemCount_; i++) {
@@ -79,6 +103,9 @@ Blockly.Blocks['dict_create_with'] = {
   }
 };
 
+/**
+ * Mutator block for adding pairs to a dictionary.
+ */
 Blockly.Blocks['dict_create_with_item'] = {
   init: function() {
     this.setColour(Blockly.Msg["%_STRUCTURE"]);
@@ -90,6 +117,10 @@ Blockly.Blocks['dict_create_with_item'] = {
   }
 };
 
+/**
+ * Block for a single key-value pair.
+ * Connects to the 'dict_create_with' block.
+ */
 Blockly.Blocks['key_value_pair'] = {
   init: function() {
     this.setColour(Blockly.Msg["%_STRUCTURE"]);
@@ -105,6 +136,10 @@ Blockly.Blocks['key_value_pair'] = {
   }
 };
 
+/**
+ * Block for creating a list (array).
+ * Uses a mutator to allow adding/removing items dynamically.
+ */
 Blockly.Blocks['list_create_with'] = {
   init: function() {
     this.setHelpUrl('');
@@ -116,15 +151,28 @@ Blockly.Blocks['list_create_with'] = {
     this.itemCount_ = 1;
     this.setTooltip('Creates a list with any number of items.');
   },
+  /**
+   * Saves the number of items in the list to a mutation XML element.
+   * @return {Element} The mutation XML element.
+   */
   mutationToDom: function() {
     var container = document.createElement('mutation');
     container.setAttribute('items', this.itemCount_);
     return container;
   },
+  /**
+   * Loads the number of items in the list from a mutation XML element.
+   * @param {!Element} xmlElement The mutation XML element.
+   */
   domToMutation: function(xmlElement) {
     this.itemCount_ = parseInt(xmlElement.getAttribute('items'), 10);
     this.updateShape_();
   },
+  /**
+   * Decomposes the list into a list of items.
+   * @param {!Blockly.Workspace} workspace The workspace to decompose in.
+   * @return {!Blockly.Block} The root block of the decomposed list.
+   */
   decompose: function(workspace) {
     var containerBlock = workspace.newBlock('lists_create_with_item');
     containerBlock.initSvg();
@@ -137,6 +185,10 @@ Blockly.Blocks['list_create_with'] = {
     }
     return containerBlock;
   },
+  /**
+   * Composes the list from a list of items.
+   * @param {!Blockly.Block} containerBlock The root block of the list.
+   */
   compose: function(containerBlock) {
     var itemBlock = containerBlock.nextConnection.targetBlock();
     var connections = [];
@@ -157,6 +209,9 @@ Blockly.Blocks['list_create_with'] = {
       Blockly.Mutator.reconnect(connections[i], this, 'ADD' + i);
     }
   },
+  /**
+   * Updates the shape of the list block to match the number of items.
+   */
   updateShape_: function() {
     for (var i = 0; i < this.itemCount_; i++) {
       if (!this.getInput('ADD' + i)) {
@@ -170,6 +225,9 @@ Blockly.Blocks['list_create_with'] = {
   }
 };
 
+/**
+ * Mutator block for adding items to a list.
+ */
 Blockly.Blocks['lists_create_with_item'] = {
   init: function() {
     this.setColour(Blockly.Msg["%_STRUCTURE"]);
@@ -183,6 +241,10 @@ Blockly.Blocks['lists_create_with_item'] = {
 
 // --- XML/HTML Blocks ---
 
+/**
+ * Block for an XML/HTML tag.
+ * Allows nesting other tags and adding attributes.
+ */
 Blockly.Blocks['xml_tag'] = {
   init: function() {
     this.setColour(Blockly.Msg["%_XML"]);
@@ -211,6 +273,9 @@ Blockly.Blocks['xml_tag'] = {
   }
 };
 
+/**
+ * Block for an attribute of an XML/HTML tag.
+ */
 Blockly.Blocks['xml_attribute'] = {
   init: function() {
     this.setColour(Blockly.Msg["%_XML"]);

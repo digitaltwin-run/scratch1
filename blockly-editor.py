@@ -36,6 +36,10 @@ def js_files(filename):
         js_dir.mkdir(parents=True, exist_ok=True)
     return send_from_directory(js_dir, filename)
 
+@app.route('/favicon.ico')
+def favicon():
+    """Serves a no-op for the browser's favicon request."""
+    return '', 204
 
 def main():
     parser = argparse.ArgumentParser(description='Generic Blockly Editor')

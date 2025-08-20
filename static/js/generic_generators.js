@@ -3,13 +3,24 @@
 // --- YAML Generator ---
 Blockly.YAML = new Blockly.Generator('YAML');
 
+/**
+ * The indentation string for YAML output.
+ */
 Blockly.YAML.INDENT = '  ';
 
+/**
+ * Converts the entire workspace into a YAML string.
+ * @param {!Blockly.Workspace} workspace The workspace to convert.
+ * @return {string} The generated YAML code.
+ */
 Blockly.YAML.workspaceToCode = function(workspace) {
   const code = Blockly.Generator.prototype.workspaceToCode.call(this, workspace);
   return code.trim() ? code : '# Empty YAML file';
 };
 
+/**
+ * Handles connecting blocks that are stacked vertically.
+ */
 Blockly.YAML.scrub_ = function(block, code) {
   const nextBlock = block.nextConnection && block.nextConnection.targetBlock();
   let nextCode = '';
@@ -19,6 +30,10 @@ Blockly.YAML.scrub_ = function(block, code) {
   return code + nextCode;
 };
 
+/**
+ * Generator for the 'dict_create_with' block.
+ * Iterates over key-value pairs and concatenates them.
+ */
 Blockly.YAML['dict_create_with'] = function(block) {
   let code = '';
   for (let i = 0; i < block.itemCount_; i++) {
@@ -30,6 +45,10 @@ Blockly.YAML['dict_create_with'] = function(block) {
   return code.trim();
 };
 
+/**
+ * Generator for the 'key_value_pair' block.
+ * Formats a key and a value, indenting nested structures.
+ */
 Blockly.YAML['key_value_pair'] = function(block) {
   const key = Blockly.YAML.valueToCode(block, 'KEY', Blockly.YAML.ORDER_ATOMIC) || '""';
   let value = Blockly.YAML.valueToCode(block, 'VALUE', Blockly.YAML.ORDER_ATOMIC) || '""';
@@ -42,6 +61,10 @@ Blockly.YAML['key_value_pair'] = function(block) {
   return `${key.replace(/'/g, '')}: ${value}`;
 };
 
+/**
+ * Generator for the 'list_create_with' block.
+ * Formats list items with a leading dash.
+ */
 Blockly.YAML['list_create_with'] = function(block) {
   let code = '';
   for (let i = 0; i < block.itemCount_; i++) {
@@ -56,6 +79,8 @@ Blockly.YAML['list_create_with'] = function(block) {
   }
   return code.trim();
 };
+
+// --- Generators for primitive types ---
 
 Blockly.YAML['text'] = function(block) {
   return [block.getFieldValue('TEXT'), Blockly.YAML.ORDER_ATOMIC];
@@ -73,6 +98,9 @@ Blockly.YAML['logic_boolean'] = function(block) {
 // --- XML Generator ---
 Blockly.XML = new Blockly.Generator('XML');
 
+/**
+ * Converts the entire workspace into an XML string.
+ */
 Blockly.XML.workspaceToCode = function(workspace) {
   const code = Blockly.Generator.prototype.workspaceToCode.call(this, workspace);
   return code.trim() ? code : '<!-- Empty XML file -->';
@@ -80,6 +108,10 @@ Blockly.XML.workspaceToCode = function(workspace) {
 
 Blockly.XML.scrub_ = Blockly.YAML.scrub_;
 
+/**
+ * Generator for the 'xml_tag' block.
+ * Creates an XML tag with attributes and nested children.
+ */
 Blockly.XML['xml_tag'] = function(block) {
   const tagName = block.getFieldValue('TAG_NAME') || 'tag';
   const attributes = Blockly.XML.statementToCode(block, 'ATTRIBUTES');
@@ -98,6 +130,10 @@ Blockly.XML['xml_tag'] = function(block) {
   return code;
 };
 
+/**
+ * Generator for the 'xml_attribute' block.
+ * Formats an attribute as name="value".
+ */
 Blockly.XML['xml_attribute'] = function(block) {
   const attrName = block.getFieldValue('ATTR_NAME') || 'attribute';
   const attrValue = Blockly.XML.valueToCode(block, 'VALUE', Blockly.XML.ORDER_ATOMIC) || '""';

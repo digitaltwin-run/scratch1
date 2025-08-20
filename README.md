@@ -66,3 +66,30 @@ Notes:
 
 - Offline usage:
   - All required JS libraries are in `vendor/`. The minimal editor has no CDN dependencies.
+
+## How It Works
+
+The editor is built on three main components:
+
+1.  **Block Definitions** (`generic_blocks.js`): This file defines the shape, color, and inputs of each custom block. It also includes "mutator" logic, which allows blocks like dictionaries and lists to be dynamically resized by the user.
+
+2.  **Code Generators** (`generic_generators.js`): For each format (YAML, XML), a generator is defined. These generators contain functions that correspond to each block type. When the user requests to generate code, Blockly traverses the workspace tree and calls the appropriate function for each block, building the final text output.
+
+3.  **Flask Server** (`blockly-editor.py`): A simple Python web server that serves the main HTML file and the necessary JavaScript assets. It does not handle any file I/O or complex logic, keeping the application entirely client-side.
+
+## Customization
+
+To extend the editor with new blocks or a new output format, follow these steps:
+
+### Adding a New Block
+
+1.  **Define the block**: Add a new entry in `static/js/generic_blocks.js`, specifying its appearance and inputs.
+2.  **Add it to the toolbox**: Add a `<block>` tag for your new block in the `<xml id="toolbox">` section of `blockly-editor.html`.
+3.  **Implement generators**: For each supported format (e.g., YAML, XML), add a corresponding generator function in `static/js/generic_generators.js` that defines how the block should be converted to text.
+
+### Adding a New Output Format
+
+1.  **Create a new generator**: In `static/js/generic_generators.js`, create a new generator object (e.g., `Blockly.JSON = new Blockly.Generator('JSON');`).
+2.  **Implement block handlers**: For the new generator, implement a function for each block type (e.g., `Blockly.JSON['dict_create_with'] = function(block) { ... };`).
+3.  **Add to UI**: Add a new `<option>` to the `#formatSelector` dropdown in `blockly-editor.html`.
+4.  **Update logic**: Modify the `generateCode()` function in `blockly-editor.html` to use your new generator when its format is selected.

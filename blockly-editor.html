@@ -7,8 +7,9 @@
     body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
     #blocklyDiv { height: 95%; width: 60%; float: left; }
     #preview { height: 95%; width: 39%; float: right; border-left: 1px solid #ddd; }
-    #topBar { height: 5%; padding: 5px; }
-    textarea { width: 100%; height: 100%; border: none; resize: none; font-family: monospace; }
+    #topBar { height: 5%; padding: 5px; border-bottom: 1px solid #ddd; box-sizing: border-box; }
+    h3 { margin: 5px 0; font-weight: normal; font-size: 16px; }
+    textarea { width: 100%; height: calc(100% - 30px); border: none; resize: none; font-family: monospace; font-size: 14px; }
   </style>
 </head>
 <body>
@@ -21,6 +22,7 @@
   </div>
   <div id="blocklyDiv"></div>
   <div id="preview">
+    <h3>Code Preview</h3>
     <textarea id="codePreview" readonly></textarea>
   </div>
 
