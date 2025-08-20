@@ -9,31 +9,60 @@ This project provides a web-based, visual editor using Blockly to build data str
 - **Format Switching**: Instantly switch the output format between YAML and XML.
 - **Fully Offline**: All required libraries are vendored, so no internet connection is needed after the initial setup.
 
-## How to Run
+## Quick Start
 
-1.  Navigate to the project directory:
-    ```bash
-    cd /home/tom/github/digitaltwin-run/scratch1
-    ```
+The repository includes a `Makefile` with common tasks. Recommended is the minimal offline editor.
 
-2.  Ensure you have the necessary Python libraries installed (Flask):
-    ```bash
-    # If you have a virtual environment, activate it first
-    # source venv/bin/activate
-    pip install flask
-    ```
+1) Setup Python environment
+```bash
+make venv install    # creates ./venv and installs Flask, Flask-CORS, PyYAML
+make dev-deps        # optional: black, ruff, pytest
+```
 
-3.  Run the server:
-    ```bash
-    python3 blockly-editor.py
-    ```
+2) Edit a file using the minimal offline editor (recommended)
+```bash
+make edit FILE=docker-compose.yml           # default port 5000
+# or choose a port
+make edit FILE=Dockerfile PORT_SIMPLE=5001
+```
+Then open: http://127.0.0.1:5000 (or your chosen port)
 
-4.  Open your web browser and go to `http://127.0.0.1:8083`.
+3) Optional: run the legacy Blockly editor UI
+```bash
+make serve-blockly PORT_BLOCKLY=8083
+```
+Then open: http://127.0.0.1:8083
+
+Notes:
+- If a port is in use, pick another (e.g., `PORT_SIMPLE=5002`) or free it (see Troubleshooting).
+- For interactive dependency checks: `make deps-script` (runs `dependencies.sh`).
 
 ## Structure
 
-- `blockly-editor.py`: The Flask server that serves the application.
-- `blockly-editor.html`: The main HTML file containing the UI layout and Blockly workspace.
+- `simple-yaml-editor.py`: Minimal offline editor (YAML/Dockerfile/docker-compose) with save/auto-save, backups, validation.
+- `blockly-editor.py`: Legacy Blockly-based server for visual editing (optional).
+- `blockly-editor.html`: HTML page for the Blockly UI.
 - `static/js/generic_blocks.js`: Custom Blockly block definitions (e.g., dictionaries, lists, XML tags).
-- `static/js/generic_generators.js`: Code generators that convert blocks to YAML and XML.
-- `vendor/`: Contains the core Blockly library for offline use.
+- `static/js/generic_generators.js`: Generators to convert blocks to YAML/XML.
+- `vendor/`: Vendored Blockly for offline usage.
+- `dependencies.sh`: Interactive helper to check/install Python deps.
+- `tests/`: Contains tests like `tests/test_simple_yaml_editor.py`.
+- `Makefile`: Convenience tasks (venv/install, edit, serve-blockly, lint, fmt, test, docker, compose).
+
+## Troubleshooting
+
+- Port already in use:
+  - Use a different port, e.g., `make edit FILE=... PORT_SIMPLE=5002`.
+  - Identify process using a port:
+    ```bash
+    ss -ltnp | grep :8083    # or :5000
+    # or
+    lsof -iTCP:8083 -sTCP:LISTEN -n -P
+    ```
+  - Stop the process: `kill -TERM <pid>` (or `kill -9 <pid>` if needed).
+
+- Missing dependencies:
+  - Run `make venv install` (recommended) or `make deps-script` for guided setup.
+
+- Offline usage:
+  - All required JS libraries are in `vendor/`. The minimal editor has no CDN dependencies.
