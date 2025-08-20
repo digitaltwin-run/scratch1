@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Generic Blockly Editor</title>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+    #blocklyDiv { height: 95%; width: 60%; float: left; }
+    #preview { height: 95%; width: 39%; float: right; border-left: 1px solid #ddd; }
+    #topBar { height: 5%; padding: 5px; }
+    textarea { width: 100%; height: 100%; border: none; resize: none; font-family: monospace; }
+  </style>
+</head>
+<body>
+  <div id="topBar">
+    <select id="formatSelector">
+      <option value="yaml">YAML</option>
+      <option value="xml">XML</option>
+    </select>
+    <button onclick="generateCode()">Generate Code</button>
+  </div>
+  <div id="blocklyDiv"></div>
+  <div id="preview">
+    <textarea id="codePreview" readonly></textarea>
+  </div>
+
+  <xml id="toolbox" style="display: none">
+    <!-- Generic Blocks -->
+    <category name="Structure" colour="%_STRUCTURE">
+      <block type="dict_create_with"></block>
+      <block type="list_create_with"></block>
+      <block type="key_value_pair"></block>
+    </category>
+    <category name="Primitives" colour="%_PRIMITIVES">
+      <block type="text"></block>
+      <block type="math_number"></block>
+      <block type="logic_boolean"></block>
+    </category>
+    <!-- XML/HTML Blocks -->
+    <category name="XML/HTML" colour="%_XML">
+        <block type="xml_tag"></block>
+        <block type="xml_attribute"></block>
+    </category>
+  </xml>
+
+  <script src="/vendor/blockly.min.js"></script>
+  <script src="/js/generic_blocks.js"></script>
+  <script src="/js/generic_generators.js"></script>
+
+  <script>
+    // Inject Blockly
+    var workspace = Blockly.inject('blocklyDiv', {
+      toolbox: document.getElementById('toolbox'),
+      scrollbars: true,
+      trashcan: true
+    });
+
+    function generateCode() {
+      const format = document.getElementById('formatSelector').value;
+      let generator;
+      if (format === 'yaml') {
+        generator = Blockly.YAML;
+      } else if (format === 'xml') {
+        generator = Blockly.XML;
+      } else {
+        generator = Blockly.JavaScript; // Fallback
+      }
+
+      try {
+        const code = generator.workspaceToCode(workspace);
+        document.getElementById('codePreview').value = code;
+      } catch (e) {
+        console.error(e);
+        document.getElementById('codePreview').value = 'Error generating code: ' + e.message;
+      }
+    }
+
+    // Auto-generate on change
+    workspace.addChangeListener(generateCode);
+  </script>
+
+</body>
+</html>
