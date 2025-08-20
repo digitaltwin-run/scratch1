@@ -39,7 +39,7 @@ def js_files(filename):
 
 def main():
     parser = argparse.ArgumentParser(description='Generic Blockly Editor')
-    parser.add_argument('--port', type=int, default=8080, help='Port for web server')
+    parser.add_argument('--port', type=int, default=8083, help='Port for web server')
     parser.add_argument('--no-browser', action='store_true', help="Don't open browser")
     args = parser.parse_args()
 

@@ -28,7 +28,7 @@ This project provides a web-based, visual editor using Blockly to build data str
     python3 blockly-editor.py
     ```
 
-4.  Open your web browser and go to `http://127.0.0.1:8080`.
+4.  Open your web browser and go to `http://127.0.0.1:8083`.
 
 ## Structure
 

@@ -382,7 +382,7 @@ HTML_TEMPLATE = '''
             init: function() {
                 this.appendDummyInput()
                     .appendField("ports:")
-                    .appendField(new Blockly.FieldTextInput("8080:80"), "PORTS");
+                    .appendField(new Blockly.FieldTextInput("8083:80"), "PORTS");
                 this.setPreviousStatement(true, null);
                 this.setNextStatement(true, null);
                 this.setColour(230);

@@ -355,7 +355,7 @@ services:
   web:
     image: nginx:latest
     ports:
-      - "8080:80"
+      - "8083:80"
 EOF
 
     info "Open in editor:"

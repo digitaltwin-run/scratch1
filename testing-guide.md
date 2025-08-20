@@ -378,7 +378,7 @@ pip3 install flask flask-cors pyyaml
 lsof -i :5000
 kill -9 <PID>
 # lub użyj innego portu:
-./blocked.py file.yaml --port 8080
+./blocked.py file.yaml --port 8083
 
 # Problem: Browser nie otwiera się
 # Rozwiązanie:
