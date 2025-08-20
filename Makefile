@@ -22,7 +22,8 @@ PYTEST:= $(VENV)/bin/pytest
 
 # Ports
 PORT_BLOCKLY ?= 8083
-PORT_SIMPLE  ?= 5005
+PORT_SIMPLE  ?= 5000
+PORT ?= 5005
 
 # Docker/Compose
 IMAGE ?= blockly-yaml-editor
@@ -36,7 +37,7 @@ FILE ?=
 HAVE_COMPOSE := $(firstword $(wildcard docker-compose.yml docker-compose.yaml compose.yml compose.yaml))
 HAVE_DOCKERFILE := $(wildcard Dockerfile)
 
-.PHONY: help venv install dev-deps deps-script serve-blockly edit run-blocked fmt lint test clean clean-venv docker-build docker-run docker-push compose-up compose-down guard-FILE
+.PHONY: help venv install dev-deps deps-script serve-blockly edit run-blocked fmt lint test clean clean-venv docker-build docker-run docker-push compose-up compose-down guard-FILE port-check
 
 help: ## Show available targets
 	@grep -hE '^[a-zA-Z0-9_.-]+:.*##' $(THIS_FILE) | awk 'BEGIN {FS = ":.*##"} {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -54,9 +55,9 @@ dev-deps: venv ## Install dev tools (black, ruff, pytest)
 deps-script: ## Run the interactive dependency helper (dependencies.sh)
 	@bash ./dependencies.sh
 
-serve-blockly: venv ## Run generic Blockly editor server (blockly-editor.py)
+serve-blockly: venv ## Run blockly-editor.py (default port 8083, no-debug) server (blockly-editor.py)
 	@echo "Starting Blockly editor on http://127.0.0.1:$(PORT_BLOCKLY)"
-	@$(PY) blockly-editor.py --port $(PORT_BLOCKLY)
+	@$(PY) blockly-editor.py --port $(PORT_BLOCKLY) --no-debug
 
 edit: guard-FILE venv ## Open file with simple YAML/Dockerfile editor (simple-yaml-editor.py). Use FILE=...
 	@echo "Editing $(FILE) at http://127.0.0.1:$(PORT_SIMPLE)"
@@ -66,6 +67,14 @@ run-blocked: guard-FILE venv ## Run advanced editor (blocked.py). Use FILE=...
 	@echo "Running blocked.py for $(FILE) on port $(PORT_SIMPLE)"
 	@$(PY) blocked.py "$(FILE)" --port $(PORT_SIMPLE)
 
+port-check: ## Check process on a PORT (e.g., make port-check PORT=8083)
+	@if [ -z "$(PORT)" ]; then \
+		echo "Usage: make port-check PORT=<port_number>"; \
+		exit 1; \
+	fi
+	@echo "Checking for process on port $(PORT)..."
+	@lsof -iTCP:$(PORT) -sTCP:LISTEN -n -P || echo "No process found on port $(PORT)."
+
 fmt: ## Format code (black, then ruff format)
 	@$(BLACK) . || true
 	@$(RUFF) format || true
@@ -73,8 +82,8 @@ fmt: ## Format code (black, then ruff format)
 lint: ## Lint code (ruff check)
 	@$(RUFF) check || true
 
-test: venv ## Run unit tests with pytest
-	@$(PYTEST) -q || true
+test: venv ## Run tests with pytest
+	@$(PYTEST) -v tests/ || true
 
 clean: ## Remove caches and build artifacts
 	@find . -type d -name "__pycache__" -prune -exec rm -rf {} +

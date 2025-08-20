@@ -32,7 +32,7 @@ stop_auto_save = threading.Event()
 backup_dir = Path(".blocked")
 
 # HTML template - Minimal Offline Editor
-HTML_TEMPLATE = '''
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
@@ -934,101 +934,107 @@ HTML_TEMPLATE = '''
     </script>
 </body>
 </html>
-'''
+"""
+
 
 def create_backup(filepath):
     """Tworzy backup pliku przed edycją"""
     if not os.path.exists(filepath):
         return
-    
+
     backup_dir.mkdir(exist_ok=True)
     timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_name = f"{os.path.basename(filepath)}.{timestamp}"
     backup_path = backup_dir / backup_name
-    
+
     shutil.copy2(filepath, backup_path)
     print(f"Backup created: {backup_path}")
+
 
 def auto_save_worker():
     """Worker thread dla auto-save"""
     global current_content, last_saved_content, current_file
-    
+
     while not stop_auto_save.is_set():
         time.sleep(10)
         if current_content and current_content != last_saved_content:
             try:
-                with open(current_file, 'w') as f:
+                with open(current_file, "w") as f:
                     f.write(current_content)
                 last_saved_content = current_content
                 print(f"Auto-saved: {current_file}")
             except Exception as e:
                 print(f"Auto-save error: {e}")
 
+
 def detect_file_type(filename):
     """Wykrywa typ pliku na podstawie nazwy"""
     filename_lower = filename.lower()
-    if 'docker-compose' in filename_lower:
-        return 'docker-compose'
-    elif 'dockerfile' in filename_lower:
-        return 'dockerfile'
+    if "docker-compose" in filename_lower:
+        return "docker-compose"
+    elif "dockerfile" in filename_lower:
+        return "dockerfile"
     else:
-        return 'yaml'
+        return "yaml"
 
-@app.route('/')
+
+@app.route("/")
 def index():
     """Główna strona z edytorem Blockly"""
     global current_file
-    
+
     initial_content = ""
     if os.path.exists(current_file):
-        with open(current_file, 'r') as f:
+        with open(current_file, "r") as f:
             initial_content = f.read()
-    
+
     file_type = detect_file_type(current_file)
-    is_docker = file_type in ['docker-compose', 'dockerfile']
-    
+    is_docker = file_type in ["docker-compose", "dockerfile"]
+
     return render_template_string(
-        HTML_TEMPLATE, 
+        HTML_TEMPLATE,
         filename=os.path.basename(current_file),
         initial_content=initial_content,
         file_type=file_type,
-        is_docker=is_docker
+        is_docker=is_docker,
     )
 
-@app.route('/save', methods=['POST'])
+
+@app.route("/save", methods=["POST"])
 def save():
     """Zapisuje plik"""
     global current_content, last_saved_content, current_file
-    
+
     try:
         data = request.json
-        content = data.get('content', '')
-        is_auto_save = data.get('auto_save', False)
-        
+        content = data.get("content", "")
+        is_auto_save = data.get("auto_save", False)
+
         current_content = content
-        
+
         if not is_auto_save or content != last_saved_content:
-            with open(current_file, 'w') as f:
+            with open(current_file, "w") as f:
                 f.write(content)
             last_saved_content = content
-            
-        return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/test-docker', methods=['POST'])
+        return jsonify({"success": True})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/test-docker", methods=["POST"])
 def test_docker():
     """Testuje konfigurację Docker"""
     global current_file
-    
+
     try:
         import subprocess
-        
-        if 'docker-compose' in current_file.lower():
+
+        if "docker-compose" in current_file.lower():
             # Prefer docker compose, fallback to docker-compose
             attempts = [
-                ['docker', 'compose', '-f', current_file, 'config'],
-                ['docker-compose', '-f', current_file, 'config']
+                ["docker", "compose", "-f", current_file, "config"],
+                ["docker-compose", "-f", current_file, "config"],
             ]
             last = None
             for cmd in attempts:
@@ -1041,54 +1047,56 @@ def test_docker():
         else:  # Dockerfile
             # Build syntax check by running a quiet build (may still take time)
             result = subprocess.run(
-                ['docker', 'build', '-q', '-f', current_file, '.'],
+                ["docker", "build", "-q", "-f", current_file, "."],
                 capture_output=True,
-                text=True
+                text=True,
             )
-        
-        if result.returncode == 0:
-            return jsonify({
-                'success': True,
-                'output': result.stdout[:500]  # Pierwsze 500 znaków
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': result.stderr
-            })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
 
-@app.route('/list-backups')
+        if result.returncode == 0:
+            return jsonify(
+                {"success": True, "output": result.stdout[:500]}  # Pierwsze 500 znaków
+            )
+        else:
+            return jsonify({"success": False, "error": result.stderr})
+    except Exception as e:
+        return jsonify({"success": False, "error": str(e)})
+
+
+@app.route("/list-backups")
 def list_backups():
     """Lista dostępnych backupów"""
     try:
         if backup_dir.exists():
-            backups = [f.name for f in backup_dir.iterdir() 
-                      if f.name.startswith(os.path.basename(current_file))]
+            backups = [
+                f.name
+                for f in backup_dir.iterdir()
+                if f.name.startswith(os.path.basename(current_file))
+            ]
             backups.sort(reverse=True)
-            return jsonify({'backups': backups[:10]})  # Ostatnie 10 backupów
-        return jsonify({'backups': []})
+            return jsonify({"backups": backups[:10]})  # Ostatnie 10 backupów
+        return jsonify({"backups": []})
     except Exception as e:
-        return jsonify({'error': str(e), 'backups': []})
+        return jsonify({"error": str(e), "backups": []})
 
-@app.route('/restore-backup', methods=['POST'])
+
+@app.route("/restore-backup", methods=["POST"])
 def restore_backup():
     """Przywraca backup"""
     global current_file
-    
+
     try:
         data = request.json
-        backup_name = data.get('backup')
+        backup_name = data.get("backup")
         backup_path = backup_dir / backup_name
-        
+
         if backup_path.exists():
             shutil.copy2(backup_path, current_file)
-            return jsonify({'success': True})
+            return jsonify({"success": True})
         else:
-            return jsonify({'success': False, 'error': 'Backup not found'})
+            return jsonify({"success": False, "error": "Backup not found"})
     except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
+        return jsonify({"success": False, "error": str(e)})
+
 
 def cleanup():
     """Cleanup przy zamknięciu"""
@@ -1097,52 +1105,58 @@ def cleanup():
     if auto_save_thread:
         auto_save_thread.join(timeout=2)
 
+
 def signal_handler(sig, frame):
     """Handler dla Ctrl+C"""
     print("\\nSaving and closing...")
     cleanup()
     sys.exit(0)
 
+
 def main():
     global current_file, auto_save_thread
-    
-    parser = argparse.ArgumentParser(description='Blockly YAML/Dockerfile Editor')
-    parser.add_argument('file', help='File to edit (e.g., docker-compose.yaml)')
-    parser.add_argument('--port', type=int, default=5000, help='Port for web server')
-    parser.add_argument('--no-browser', action='store_true', help='Don\'t open browser automatically')
-    
+
+    parser = argparse.ArgumentParser(description="Blockly YAML/Dockerfile Editor")
+    parser.add_argument("file", help="File to edit (e.g., docker-compose.yaml)")
+    parser.add_argument("--port", type=int, default=5000, help="Port for web server")
+    parser.add_argument(
+        "--no-browser", action="store_true", help="Don't open browser automatically"
+    )
+
     args = parser.parse_args()
-    
+
     current_file = os.path.abspath(args.file)
-    
+
     # Tworzenie backupu
     create_backup(current_file)
-    
+
     # Start auto-save thread
     auto_save_thread = threading.Thread(target=auto_save_worker, daemon=True)
     auto_save_thread.start()
-    
+
     # Signal handlers
     signal.signal(signal.SIGINT, signal_handler)
     signal.signal(signal.SIGTERM, signal_handler)
     atexit.register(cleanup)
-    
+
     # Otwieranie przeglądarki
     if not args.no_browser:
+
         def open_browser():
             time.sleep(1.5)
-            webbrowser.open(f'http://localhost:{args.port}')
-        
+            webbrowser.open(f"http://localhost:{args.port}")
+
         browser_thread = threading.Thread(target=open_browser)
         browser_thread.daemon = True
         browser_thread.start()
-    
+
     print(f"Starting Blockly YAML Editor on http://localhost:{args.port}")
     print(f"Editing: {current_file}")
     print("Press Ctrl+C to save and exit")
-    
-    # Start Flask
-    app.run(host='0.0.0.0', port=args.port, debug=False)
 
-if __name__ == '__main__':
+    # Start Flask
+    app.run(host="0.0.0.0", port=args.port, debug=False)
+
+
+if __name__ == "__main__":
     main()

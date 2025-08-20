@@ -14,47 +14,57 @@ import time
 from flask import Flask, render_template, abort, send_from_directory
 from pathlib import Path
 
-app = Flask(__name__, template_folder='.')
+app = Flask(__name__, template_folder=".")
 
 # --- Routes ---
 
-@app.route('/')
+
+@app.route("/")
 def index():
     """Serves the main editor page."""
-    return render_template('blockly-editor.html')
+    return render_template("blockly-editor.html")
 
-@app.route('/vendor/<path:filename>')
+
+@app.route("/vendor/<path:filename>")
 def vendor_files(filename):
     """Serves vendored JS libraries."""
-    return send_from_directory('vendor', filename)
+    return send_from_directory("vendor", filename)
 
-@app.route('/js/<path:filename>')
+
+@app.route("/js/<path:filename>")
 def js_files(filename):
     """Serves custom JS files (blocks, generators)."""
-    js_dir = Path('static/js')
+    js_dir = Path("static/js")
     if not js_dir.exists():
         js_dir.mkdir(parents=True, exist_ok=True)
     return send_from_directory(js_dir, filename)
 
-@app.route('/favicon.ico')
+
+@app.route("/favicon.ico")
 def favicon():
     """Serves a no-op for the browser's favicon request."""
-    return '', 204
+    return "", 204
+
 
 def main():
-    parser = argparse.ArgumentParser(description='Generic Blockly Editor')
-    parser.add_argument('--port', type=int, default=8083, help='Port for web server')
-    parser.add_argument('--no-browser', action='store_true', help="Don't open browser")
+    parser = argparse.ArgumentParser(description="Generic Blockly Editor")
+    parser.add_argument("--port", type=int, default=8083, help="Port for web server")
+    parser.add_argument("--no-browser", action="store_true", help="Don't open browser")
+    parser.add_argument(
+        "--no-debug", action="store_true", help="Disable Flask debug mode"
+    )
     args = parser.parse_args()
 
-    url = f'http://127.0.0.1:{args.port}'
+    url = f"http://127.0.0.1:{args.port}"
 
     if not args.no_browser:
-        webbrowser.open_new(url)
+        # Use threading to avoid blocking the server start
+        threading.Timer(1.25, lambda: webbrowser.open_new(url)).start()
 
     print(f"Starting Generic Blockly Editor at {url}")
     print("Press Ctrl+C to exit")
-    app.run(host='0.0.0.0', port=args.port, debug=True)
+    app.run(host="0.0.0.0", port=args.port, debug=not args.no_debug)
 
-if __name__ == '__main__':
+
+if __name__ == "__main__":
     main()

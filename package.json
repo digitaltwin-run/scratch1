@@ -1,0 +1,16 @@
+{
+  "name": "scratch1",
+  "version": "1.0.0",
+  "description": "This project provides a web-based, visual editor using Blockly to build data structures that can be exported into different formats like YAML and XML. It's designed to be generic, allowing for easy extension to other formats.",
+  "main": "nodejs-version.js",
+  "scripts": {
+    "test": "jest"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jest-environment-jsdom": "^29.7.0"
+  }
+}
