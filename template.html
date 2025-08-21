@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>YAML Editor - {{ filename }}</title>
+    <style>
+        body { margin: 0; padding: 0; font-family: Arial, sans-serif; display: flex; flex-direction: column; height: 100vh; background: #f5f5f5; }
+        .header { background: #2c3e50; color: white; padding: 10px 20px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .header h1 { margin: 0; font-size: 20px; }
+        .buttons { display: flex; gap: 10px; }
+        button { background: #3498db; color: white; border: none; padding: 8px 16px; border-radius: 4px; cursor: pointer; font-size: 14px; transition: background 0.2s; }
+        button:hover { background: #2980b9; }
+        .save-status { color: #2ecc71; font-size: 12px; margin-left: 10px; }
+        .container { display: flex; flex: 1; overflow: hidden; }
+        .editor-panel { flex: 1; display: flex; flex-direction: column; background: white; margin: 10px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .editor-header { background: #34495e; color: white; padding: 10px 20px; border-radius: 8px 8px 0 0; font-weight: bold; }
+        #textEditor { flex: 1; padding: 0; }
+        #textEditor textarea { width: 100%; height: 100%; border: none; padding: 20px; font-family: 'Courier New', monospace; font-size: 14px; resize: none; outline: none; border-radius: 0 0 8px 8px; }
+        .preview-panel { width: 400px; display: flex; flex-direction: column; background: white; margin: 10px 10px 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+        .preview-header { background: #27ae60; color: white; padding: 10px 20px; border-radius: 8px 8px 0 0; font-weight: bold; }
+        .preview-content { flex: 1; padding: 20px; overflow-y: auto; }
+        .preview-content pre { background: #f8f9fa; padding: 15px; border-radius: 4px; overflow-x: auto; font-size: 12px; line-height: 1.4; border: 1px solid #e9ecef; margin: 0; }
+        .error { background: #e74c3c; color: white; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+        .success { background: #27ae60; color: white; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+        .info { background: #3498db; color: white; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div style="display: flex; align-items: center;">
+            <h1>{{ filename }} ({{ file_type }})</h1>
+            <span class="save-status" id="saveStatus"></span>
+        </div>
+        <div class="buttons">
+            <button onclick="saveFile()">💾 Save</button>
+            <button onclick="validateContent()">✓ Validate</button>
+            <button onclick="testDocker()" style="display:{{ 'block' if is_docker else 'none' }};">🐳 Test</button>
+            <button onclick="loadBackup()">📁 Backup</button>
+            <button onclick="formatContent()">🎨 Format</button>
+        </div>
+    </div>
+    <div class="container">
+        <div class="editor-panel">
+            <div class="editor-header">
+                📝 Editor - {{ file_type.upper() }}
+            </div>
+            <div id="textEditor">
+                <textarea id="textContent" placeholder="Edit your {{ file_type }} content here...">{{ initial_content }}</textarea>
+            </div>
+        </div>
+        <div class="preview-panel">
+            <div class="preview-header">
+                👁️ Live Preview
+            </div>
+            <div class="preview-content">
+                <div id="errorDiv"></div>
+                <pre id="yamlOutput">{{ initial_content }}</pre>
+            </div>
+        </div>
+    </div>
+    <script>
+        var dirty = false;
+        function saveFile(isAutoSave = false) {
+            var code = document.getElementById('textContent').value;
+            fetch('/save', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ content: code, auto_save: isAutoSave })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    var status = document.getElementById('saveStatus');
+                    status.textContent = isAutoSave ? '✓ Auto-saved' : '✓ Saved';
+                    dirty = false;
+                    setTimeout(() => { status.textContent = ''; }, 3000);
+                } else {
+                    showError('Save failed: ' + data.error);
+                }
+            });
+        }
+        function validateContent() {
+            var code = document.getElementById('textContent').value;
+            if (code.trim() === '') {
+                showError('Content is empty!');
+            } else {
+                document.getElementById('errorDiv').innerHTML = '<div class="success">Content appears valid.</div>';
+            }
+        }
+        function testDocker() {
+            fetch('/test-docker', { method: 'POST' })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    alert('Docker test successful!\n' + data.output);
+                } else {
+                    showError('Docker test failed: ' + data.error);
+                }
+            });
+        }
+        function loadBackup() {
+            fetch('/list-backups')
+            .then(response => response.json())
+            .then(data => {
+                if (data.backups && data.backups.length > 0) {
+                    var backup = prompt('Available backups:\n' + data.backups.join('\n') + '\n\nEnter backup filename to restore:');
+                    if (backup) {
+                        fetch('/restore-backup', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ backup: backup })
+                        })
+                        .then(response => response.json())
+                        .then(data => {
+                            if (data.success) { location.reload(); } 
+                            else { showError('Restore failed: ' + data.error); }
+                        });
+                    }
+                } else {
+                    alert('No backups available');
+                }
+            });
+        }
+        function formatContent() {
+            alert('Formatting not implemented yet.');
+        }
+
+        function showError(message) {
+            document.getElementById('errorDiv').innerHTML = '<div class="error">' + message + '</div>';
+        }
+        document.getElementById('textContent').addEventListener('input', function() {
+            document.getElementById('yamlOutput').textContent = this.value;
+            dirty = true;
+        });
+        window.addEventListener('beforeunload', function(e) {
+            if (dirty) { saveFile(false); }
+        });
+        setInterval(function() {
+            if (dirty) { saveFile(true); }
+        }, 10000);
+    </script>
+</body>
+</html>
