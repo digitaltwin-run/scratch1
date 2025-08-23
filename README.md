@@ -1,6 +1,22 @@
-# Generic Blockly Editor for YAML, XML, and more
+# Blockly YAML Editor
 
-This project provides a web-based, visual editor using Blockly to build data structures that can be exported into different formats like YAML and XML. It's designed to be generic, allowing for easy extension to other formats.
+A simple, offline web-based editor for YAML and Docker configuration files using Blockly.
+
+## Quick Start
+
+1) Setup Python environment
+```bash
+make install    # installs Flask, Flask-CORS, PyYAML, Waitress
+make dev-deps   # optional: installs black, ruff, pytest for development
+```
+
+2) Edit a file
+```bash
+make edit FILE=docker-compose.yml           # default port 8989
+# or choose a port
+make edit FILE=Dockerfile PORT_SIMPLE=5001
+```
+Then open: http://127.0.0.1:8989 (or your chosen port)
 
 ## Features
 
@@ -8,34 +24,9 @@ This project provides a web-based, visual editor using Blockly to build data str
 - **Live Preview**: See the generated code in real-time as you edit.
 - **Format Switching**: Instantly switch the output format between YAML and XML.
 - **Fully Offline**: All required libraries are vendored, so no internet connection is needed after the initial setup.
-
-## Quick Start
-
-The repository includes a `Makefile` with common tasks. Recommended is the minimal offline editor.
-
-1) Setup Python environment
-```bash
-make venv install    # creates ./venv and installs Flask, Flask-CORS, PyYAML
-make dev-deps        # optional: black, ruff, pytest
-```
-
-2) Edit a file using the minimal offline editor (recommended)
-```bash
-make edit FILE=docker-compose.yml           # default port 5000
-# or choose a port
-make edit FILE=Dockerfile PORT_SIMPLE=5001
-```
-Then open: http://127.0.0.1:5000 (or your chosen port)
-
-3) Optional: run the legacy Blockly editor UI
-```bash
-make serve-blockly PORT_BLOCKLY=8083
-```
-Then open: http://127.0.0.1:8083
-
-Notes:
-- If a port is in use, pick another (e.g., `PORT_SIMPLE=5002`) or free it (see Troubleshooting).
-- For interactive dependency checks: `make deps-script` (runs `dependencies.sh`).
+- **Auto-save**: The editor automatically saves your work every 10 seconds.
+- **Backups**: A backup of the original file is created before editing.
+- **Docker Validation**: Test your Docker or docker-compose configuration directly from the editor.
 
 ## Structure
 
@@ -55,14 +46,14 @@ Notes:
   - Use a different port, e.g., `make edit FILE=... PORT_SIMPLE=5002`.
   - Identify process using a port:
     ```bash
-    ss -ltnp | grep :8083    # or :5000
+    ss -ltnp | grep :8989    # or :5000
     # or
-    lsof -iTCP:8083 -sTCP:LISTEN -n -P
+    lsof -iTCP:8989 -sTCP:LISTEN -n -P
     ```
   - Stop the process: `kill -TERM <pid>` (or `kill -9 <pid>` if needed).
 
 - Missing dependencies:
-  - Run `make venv install` (recommended) or `make deps-script` for guided setup.
+  - Run `make install` (recommended) or `make deps-script` for guided setup.
 
 - Offline usage:
   - All required JS libraries are in `vendor/`. The minimal editor has no CDN dependencies.

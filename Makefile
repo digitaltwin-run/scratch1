@@ -22,7 +22,7 @@ PYTEST:= $(VENV)/bin/pytest
 
 # Ports
 PORT_BLOCKLY ?= 8083
-PORT_SIMPLE  ?= 5000
+PORT_SIMPLE  ?= 8989
 PORT ?= 5005
 
 # Docker/Compose
@@ -37,7 +37,7 @@ FILE ?=
 HAVE_COMPOSE := $(firstword $(wildcard docker-compose.yml docker-compose.yaml compose.yml compose.yaml))
 HAVE_DOCKERFILE := $(wildcard Dockerfile)
 
-.PHONY: help venv install dev-deps deps-script serve-blockly edit run-blocked fmt lint test clean clean-venv docker-build docker-run docker-push compose-up compose-down guard-FILE port-check
+.PHONY: help venv install dev-deps deps-script serve-blockly edit run-blocked fmt lint test clean clean-venv stop docker-build docker-run docker-push compose-up compose-down guard-FILE port-check
 
 help: ## Show available targets
 	@grep -hE '^[a-zA-Z0-9_.-]+:.*##' $(THIS_FILE) | awk 'BEGIN {FS = ":.*##"} {printf "  \033[36m%-18s\033[0m %s\n", $$1, $$2}'
@@ -120,6 +120,14 @@ ifneq ($(HAVE_COMPOSE),)
 else
 	@echo "No docker-compose*.yml found."
 endif
+
+stop: ## Stop all running services (Python servers and Docker Compose)
+	@echo "Stopping Docker Compose services..."
+	@if [ -n "$(HAVE_COMPOSE)" ]; then $(MAKE) compose-down; fi
+	@echo "Stopping Python servers on ports $(PORT_SIMPLE) and $(PORT_BLOCKLY)..."
+	@lsof -t -i:$(PORT_SIMPLE) | xargs -r kill -9 || true
+	@lsof -t -i:$(PORT_BLOCKLY) | xargs -r kill -9 || true
+	@echo "Stop command finished."
 
 # Guards
 guard-FILE:

@@ -1,10 +1,16 @@
 #!/usr/bin/env python3
-"""
-Blockly YAML Editor
-Edytor plików YAML (docker-compose, etc.) oraz Dockerfile z interfejsem Blockly
-"""
+"""Blockly YAML Editor - An editor for YAML and Dockerfile files with a Blockly interface."""
 
 import sys
+import logging
+
+# Configure logging to a file to capture all output
+logging.basicConfig(
+    filename='app.log',
+    filemode='w',
+    level=logging.INFO,
+    format='%(asctime)s - %(levelname)s - %(message)s'
+)
 
 try:
     import os
@@ -12,10 +18,9 @@ try:
     import threading
     import time
     import shutil
-    import traceback
-    from datetime import datetime
+    import datetime
     from pathlib import Path
-    from flask import Flask, request, jsonify, render_template_string
+    from flask import Flask, request, jsonify, render_template_string, send_from_directory
     from flask_cors import CORS
     import argparse
     import signal
@@ -30,7 +35,7 @@ except ImportError as e:
 app = Flask(__name__)
 CORS(app)
 
-# Globalne zmienne
+# Global variables
 current_file = None
 current_content = None
 last_saved_content = None
@@ -40,12 +45,12 @@ backup_dir = Path(".blocked")
 
 
 def create_backup(filepath):
-    """Tworzy backup pliku przed edycją"""
+    """Creates a backup of the file before editing."""
     if not os.path.exists(filepath):
         return
 
     backup_dir.mkdir(exist_ok=True)
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
     backup_name = f"{os.path.basename(filepath)}.{timestamp}"
     backup_path = backup_dir / backup_name
 
@@ -54,7 +59,7 @@ def create_backup(filepath):
 
 
 def auto_save_worker():
-    """Worker thread dla auto-save"""
+    """Worker thread for auto-save."""
     global current_content, last_saved_content, current_file
 
     while not stop_auto_save.is_set():
@@ -70,7 +75,7 @@ def auto_save_worker():
 
 
 def detect_file_type(filename):
-    """Wykrywa typ pliku na podstawie nazwy"""
+    """Detects the file type based on the filename."""
     filename_lower = filename.lower()
     if "docker-compose" in filename_lower:
         return "docker-compose"
@@ -82,9 +87,9 @@ def detect_file_type(filename):
 
 @app.route("/")
 def index():
-    logging.info(f"Index route called. current_file: {current_file}")
-    """Główna strona z edytorem Blockly"""
+    """Main page with the Blockly editor."""
     global current_file
+    print(f"--- INDEX ROUTE CALLED, FILE: {current_file} ---", flush=True)
 
     initial_content = ""
     if os.path.exists(current_file):
@@ -104,9 +109,24 @@ def index():
                                 is_docker=is_docker)
 
 
+@app.route("/vendor/<path:filename>")
+def vendor_files(filename):
+    """Serve vendored JavaScript libraries."""
+    return send_from_directory("vendor", filename)
+
+
+@app.route("/js/<path:filename>")
+def js_files(filename):
+    """Serve custom JavaScript files."""
+    js_dir = Path("static/js")
+    if not js_dir.exists():
+        js_dir.mkdir(parents=True, exist_ok=True)
+    return send_from_directory(js_dir, filename)
+
+
 @app.route("/save", methods=["POST"])
 def save():
-    """Zapisuje plik"""
+    """Saves the file."""
     global current_content, last_saved_content, current_file
 
     try:
@@ -128,7 +148,7 @@ def save():
 
 @app.route("/test-docker", methods=["POST"])
 def test_docker():
-    """Testuje konfigurację Docker"""
+    """Tests the Docker configuration."""
     global current_file
 
     try:
@@ -158,7 +178,7 @@ def test_docker():
 
         if result.returncode == 0:
             return jsonify(
-                {"success": True, "output": result.stdout[:500]}  # Pierwsze 500 znaków
+                {"success": True, "output": result.stdout[:500]}  # First 500 characters
             )
         else:
             return jsonify({"success": False, "error": result.stderr})
@@ -168,7 +188,7 @@ def test_docker():
 
 @app.route("/list-backups")
 def list_backups():
-    """Lista dostępnych backupów"""
+    """Lists available backups."""
     try:
         if backup_dir.exists():
             backups = [
@@ -177,7 +197,7 @@ def list_backups():
                 if f.name.startswith(os.path.basename(current_file))
             ]
             backups.sort(reverse=True)
-            return jsonify({"backups": backups[:10]})  # Ostatnie 10 backupów
+            return jsonify({"backups": backups[:10]})  # Last 10 backups
         return jsonify({"backups": []})
     except Exception as e:
         return jsonify({"error": str(e), "backups": []})
@@ -185,7 +205,7 @@ def list_backups():
 
 @app.route("/restore-backup", methods=["POST"])
 def restore_backup():
-    """Przywraca backup"""
+    """Restores a backup."""
     global current_file
 
     try:
@@ -203,7 +223,7 @@ def restore_backup():
 
 
 def cleanup():
-    """Cleanup przy zamknięciu"""
+    """Cleanup on exit."""
     global stop_auto_save
     stop_auto_save.set()
     if auto_save_thread:
@@ -211,7 +231,7 @@ def cleanup():
 
 
 def signal_handler(sig, frame):
-    """Handler dla Ctrl+C"""
+    """Handler for Ctrl+C."""
     print(r'\nSaving and closing...')
     cleanup()
     sys.exit(0)
@@ -221,8 +241,8 @@ def main():
     global current_file, auto_save_thread
 
     parser = argparse.ArgumentParser(description="Blockly YAML/Dockerfile Editor")
-    parser.add_argument("file", help="File to edit (e.g., docker-compose.yaml)")
-    parser.add_argument("--port", type=int, default=5000, help="Port for web server")
+    parser.add_argument("file", nargs="?", default="default.yaml", help="File to edit (e.g., docker-compose.yaml)")
+    parser.add_argument("--port", type=int, default=8989, help="Port to run the server on")
     parser.add_argument(
         "--no-browser", action="store_true", help="Don't open browser automatically"
     )
@@ -233,7 +253,7 @@ def main():
 
     current_file = os.path.abspath(args.file)
 
-    # Tworzenie backupu
+    # Create a backup
     create_backup(current_file)
 
     # Start auto-save thread
@@ -247,7 +267,7 @@ def main():
 
     url = f"http://127.0.0.1:{args.port}"
 
-    # Otwieranie przeglądarki
+    # Open browser
     if not args.no_browser:
         threading.Timer(1.25, lambda: webbrowser.open_new(url)).start()
 
@@ -262,7 +282,6 @@ def main():
 if __name__ == "__main__":
     try:
         main()
-    except Exception as e:
-        print(f"An error occurred: {e}")
-        traceback.print_exc()
+    except Exception:
+        logging.error("An unhandled exception occurred at startup", exc_info=True)
         sys.exit(1)

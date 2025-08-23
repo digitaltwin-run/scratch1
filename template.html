@@ -16,6 +16,8 @@
         .editor-header { background: #34495e; color: white; padding: 10px 20px; border-radius: 8px 8px 0 0; font-weight: bold; }
         #textEditor { flex: 1; padding: 0; }
         #textEditor textarea { width: 100%; height: 100%; border: none; padding: 20px; font-family: 'Courier New', monospace; font-size: 14px; resize: none; outline: none; border-radius: 0 0 8px 8px; }
+        #blocklyDiv { flex: 1; padding: 0; }
+        #blocklyDiv div { width: 100%; height: 100%; border-radius: 0 0 8px 8px; }
         .preview-panel { width: 400px; display: flex; flex-direction: column; background: white; margin: 10px 10px 10px 0; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
         .preview-header { background: #27ae60; color: white; padding: 10px 20px; border-radius: 8px 8px 0 0; font-weight: bold; }
         .preview-content { flex: 1; padding: 20px; overflow-y: auto; }
@@ -23,6 +25,7 @@
         .error { background: #e74c3c; color: white; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
         .success { background: #27ae60; color: white; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
         .info { background: #3498db; color: white; padding: 10px; border-radius: 4px; margin-bottom: 10px; }
+        #toolbox { display: none; }
     </style>
 </head>
 <body>
@@ -32,6 +35,8 @@
             <span class="save-status" id="saveStatus"></span>
         </div>
         <div class="buttons">
+            <button onclick="switchToTextEditor()">📝 Text</button>
+            <button onclick="switchToVisualEditor()">🎨 Visual</button>
             <button onclick="saveFile()">💾 Save</button>
             <button onclick="validateContent()">✓ Validate</button>
             <button onclick="testDocker()" style="display:{{ 'block' if is_docker else 'none' }};">🐳 Test</button>
@@ -47,6 +52,9 @@
             <div id="textEditor">
                 <textarea id="textContent" placeholder="Edit your {{ file_type }} content here...">{{ initial_content }}</textarea>
             </div>
+            <div id="blocklyDiv" style="display: none;">
+                <!-- Blockly editor will be injected here -->
+            </div>
         </div>
         <div class="preview-panel">
             <div class="preview-header">
@@ -58,8 +66,98 @@
             </div>
         </div>
     </div>
+    
+    <!-- Blockly Toolbox -->
+    <xml id="toolbox">
+        <!-- Generic Blocks -->
+        <category name="Structure" colour="%_STRUCTURE">
+            <block type="dict_create_with"></block>
+            <block type="list_create_with"></block>
+            <block type="key_value_pair"></block>
+        </category>
+        <category name="Primitives" colour="%_PRIMITIVES">
+            <block type="text"></block>
+            <block type="math_number"></block>
+            <block type="logic_boolean"></block>
+        </category>
+        <!-- XML/HTML Blocks -->
+        <category name="XML/HTML" colour="%_XML">
+            <block type="xml_tag"></block>
+            <block type="xml_attribute"></block>
+        </category>
+    </xml>
+    
+    <!-- Blockly Libraries -->
+    <script src="/vendor/blockly.min.js"></script>
+    <script src="/vendor/blocks_compressed.js"></script>
+    <script src="/vendor/javascript_compressed.js"></script>
+    <script src="/js/generic_blocks.js"></script>
+    <script src="/js/generic_generators.js"></script>
+    
     <script>
         var dirty = false;
+        var workspace = null;
+        var currentMode = 'text'; // 'text' or 'visual'
+        
+        // Initialize Blockly workspace
+        function initBlockly() {
+            if (!workspace) {
+                workspace = Blockly.inject('blocklyDiv', {
+                    toolbox: document.getElementById('toolbox'),
+                    scrollbars: true,
+                    trashcan: true
+                });
+                
+                // Auto-generate on change
+                workspace.addChangeListener(function() {
+                    if (currentMode === 'visual') {
+                        generateCodeFromBlocks();
+                    }
+                });
+            }
+        }
+        
+        // Generate code from Blockly workspace
+        function generateCodeFromBlocks() {
+            try {
+                const code = Blockly.YAML.workspaceToCode(workspace);
+                document.getElementById('yamlOutput').textContent = code;
+                // Update textarea with generated code
+                document.getElementById('textContent').value = code;
+                dirty = true;
+            } catch (e) {
+                console.error(e);
+                showError('Error generating code: ' + e.message);
+            }
+        }
+        
+        // Switch to text editor mode
+        function switchToTextEditor() {
+            currentMode = 'text';
+            document.getElementById('textEditor').style.display = 'block';
+            document.getElementById('blocklyDiv').style.display = 'none';
+            // Update preview with current text content
+            document.getElementById('yamlOutput').textContent = document.getElementById('textContent').value;
+        }
+        
+        // Switch to visual editor mode
+        function switchToVisualEditor() {
+            currentMode = 'visual';
+            document.getElementById('textEditor').style.display = 'none';
+            document.getElementById('blocklyDiv').style.display = 'block';
+            initBlockly();
+            // Generate code from current text content
+            try {
+                // For now, we'll just show the visual editor without loading existing content
+                // In a more advanced implementation, we could parse the YAML and convert to blocks
+                generateCodeFromBlocks();
+            } catch (e) {
+                console.error("Could not load existing content into visual editor", e);
+                // Clear workspace if we can't load existing content
+                workspace.clear();
+            }
+        }
+        
         function saveFile(isAutoSave = false) {
             var code = document.getElementById('textContent').value;
             fetch('/save', {
@@ -79,6 +177,7 @@
                 }
             });
         }
+        
         function validateContent() {
             var code = document.getElementById('textContent').value;
             if (code.trim() === '') {
@@ -87,6 +186,7 @@
                 document.getElementById('errorDiv').innerHTML = '<div class="success">Content appears valid.</div>';
             }
         }
+        
         function testDocker() {
             fetch('/test-docker', { method: 'POST' })
             .then(response => response.json())
@@ -98,6 +198,7 @@
                 }
             });
         }
+        
         function loadBackup() {
             fetch('/list-backups')
             .then(response => response.json())
@@ -112,8 +213,11 @@
                         })
                         .then(response => response.json())
                         .then(data => {
-                            if (data.success) { location.reload(); } 
-                            else { showError('Restore failed: ' + data.error); }
+                            if (data.success) { 
+                                location.reload(); 
+                            } else { 
+                                showError('Restore failed: ' + data.error); 
+                            }
                         });
                     }
                 } else {
@@ -121,6 +225,7 @@
                 }
             });
         }
+        
         function formatContent() {
             alert('Formatting not implemented yet.');
         }
@@ -128,13 +233,17 @@
         function showError(message) {
             document.getElementById('errorDiv').innerHTML = '<div class="error">' + message + '</div>';
         }
+        
+        // Update preview when text changes
         document.getElementById('textContent').addEventListener('input', function() {
             document.getElementById('yamlOutput').textContent = this.value;
             dirty = true;
         });
+        
         window.addEventListener('beforeunload', function(e) {
             if (dirty) { saveFile(false); }
         });
+        
         setInterval(function() {
             if (dirty) { saveFile(true); }
         }, 10000);
